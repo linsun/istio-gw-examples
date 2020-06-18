@@ -128,6 +128,70 @@ $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGR
 curl: (35) error:1401E416:SSL routines:CONNECT_CR_FINISHED:sslv3 alert certificate unknown
 ```
 
+7. Access your istio ingress gateway to review your configuration:
+
+```
+istioctl dashboard envoy istio-ingressgateway-6dd66b7c95-cd99x.istio-system
+```
+
+Visit the envoy configuration at http://localhost:58657/config_dump, you should see your verify_certificate_spki within the default validation context:
+
+```
+         "transport_socket": {
+          "name": "envoy.transport_sockets.tls",
+          "typed_config": {
+           "@type": "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
+           "common_tls_context": {
+            "alpn_protocols": [
+             "h2",
+             "http/1.1"
+            ],
+            "tls_certificate_sds_secret_configs": [
+             {
+              "name": "httpbin-credential",
+              "sds_config": {
+               "api_config_source": {
+                "api_type": "GRPC",
+                "grpc_services": [
+                 {
+                  "google_grpc": {
+                   "target_uri": "unix:/var/run/ingress_gateway/sds",
+                   "stat_prefix": "sdsstat"
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            ],
+            "combined_validation_context": {
+             "default_validation_context": {
+              "verify_certificate_spki": [
+               "abnLhNPH/LTI1HLbPBtX3TxAQgdTLkjYQpp8WkxQseE="
+              ]
+             },
+             "validation_context_sds_secret_config": {
+              "name": "httpbin-credential-cacert",
+              "sds_config": {
+               "api_config_source": {
+                "api_type": "GRPC",
+                "grpc_services": [
+                 {
+                  "google_grpc": {
+                   "target_uri": "unix:/var/run/ingress_gateway/sds",
+                   "stat_prefix": "sdsstat"
+                  }
+                 }
+                ]
+               }
+              }
+             }
+            }
+           },
+           "require_client_certificate": true
+          }
+         }
+ ```
 That is it!  You can simply leverage the verifyCertificateSpki, or subjectAltNames or other fields within the [ServerTLSSettings](https://istio.io/latest/docs/reference/config/networking/gateway/#ServerTLSSettings) of your ingress gateway resource for additional certificate validation.
 
 
